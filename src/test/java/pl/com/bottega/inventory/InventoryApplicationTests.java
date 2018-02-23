@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,25 +41,104 @@ public class InventoryApplicationTests {
   }
 
   @Test
+  public void successfulInflate() throws Exception {
+    inflate("Shoes", 20).andExpect(status().isOk());
+  }
+
+  @Test
+  public void missingSkuCodeToInflate() throws Exception {
+    inflate(null, 20).andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.skuCode").value("can't be blank"));
+    inflate("", 20).andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.skuCode").value("can't be blank"));
+  }
+
+  @Test
+  public void missingAmountToInflate() throws Exception {
+    inflate("Shoes", null).andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.amount").value("can't be blank"));
+  }
+
+  @Test
   public void succesfulPurchase() throws Exception {
     inflate("Socks", 10);
     inflate("Shoes", 20);
     inflate("Trousers", 50);
 
-    mvc.perform(post("/purchase").
-        content(
-            toBuy(
-                entry("Socks", 2),
-                entry("Shoes", 2),
-                entry("Trousers", 14)
-            )
-        ).
-        contentType(MediaType.APPLICATION_JSON)).
+    purchase(
+        entry("Socks", 2),
+        entry("Shoes", 2),
+        entry("Trousers", 14)
+    ).
         andExpect(status().isOk()).
         andExpect(jsonPath("$.success").value(true)).
         andExpect(jsonPath("$.purchasedProducts.Socks").value(2)).
         andExpect(jsonPath("$.purchasedProducts.Shoes").value(2)).
         andExpect(jsonPath("$.purchasedProducts.Trousers").value(14));
+  }
+
+  @Test
+  public void invalidSkuCodesToPurchase() throws Exception {
+    inflate("Pants", 10);
+
+    purchase(
+        entry("Pants", 10),
+        entry("Socks", 2),
+        entry("Trousers", 2)
+    ).
+        andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.Socks").value("no such sku")).
+        andExpect(jsonPath("$.errors.Trousers").value("no such sku")).
+        andExpect(jsonPath("$.errors.Pants").doesNotExist());
+  }
+
+  @Test
+  public void notEnoughStock() throws Exception {
+    inflate("Pants", 10);
+    inflate("Trousers", 10);
+
+    purchase(
+        entry("Pants", 5)
+    ).
+        andExpect(status().isOk());
+
+    purchase(
+        entry("Pants", 6),
+        entry("Trousers", 10)
+    ).
+        andExpect(status().isOk()).
+        andExpect(jsonPath("$.success").value(false)).
+        andExpect(jsonPath("$.missingProducts.Pants").value(6)).
+        andExpect(jsonPath("$.missingProducts.Trousers").doesNotExist()).
+        andExpect(jsonPath("$.purchasedProducts.Pants").doesNotExist()).
+        andExpect(jsonPath("$.purchasedProducts.Trousers").doesNotExist())
+    ;
+  }
+
+  @Test
+  public void noProductsToPurchase() throws Exception {
+    purchase().andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.skus").value("are required"));
+  }
+
+  @Test
+  public void eitherAllPurchasedOrNone() throws Exception {
+    inflate("Pants", 10);
+    inflate("Trousers", 10);
+
+    purchase(
+        entry("Pants", 5),
+        entry("Trousers", 11)
+    ).
+        andExpect(status().isOk()).
+        andExpect(jsonPath("$.success").value(false));
+
+    purchase(
+        entry("Pants", 5),
+        entry("Trousers", 10)
+    ).
+        andExpect(status().isOk()).
+        andExpect(jsonPath("$.success").value(true));
   }
 
   private String toBuy(MapEntry<String, Integer>... items) throws Exception {
@@ -69,12 +149,18 @@ public class InventoryApplicationTests {
   }
 
 
-  private void inflate(String skuCode, Integer count) throws Exception {
-    Map<String, Integer> content = new HashMap<>();
-    content.put("skuCode", count);
-    mvc.perform(post("/inventory").
+  private ResultActions inflate(String skuCode, Integer amount) throws Exception {
+    Map<String, Object> content = new HashMap<>();
+    content.put("skuCode", skuCode);
+    content.put("amount", amount);
+    return mvc.perform(post("/inventory").
         content(objectMapper.writeValueAsString(content)).
-        contentType(MediaType.APPLICATION_JSON)).
-        andExpect(status().isOk());
+        contentType(MediaType.APPLICATION_JSON));
+  }
+
+  private ResultActions purchase(MapEntry<String, Integer>... skus) throws Exception {
+    return mvc.perform(post("/purchase").
+        content(toBuy(skus)).
+        contentType(MediaType.APPLICATION_JSON));
   }
 }

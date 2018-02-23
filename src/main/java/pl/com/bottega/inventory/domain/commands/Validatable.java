@@ -29,8 +29,14 @@ public interface Validatable {
 
     }
 
-    default boolean isEmpty(String s) {
-        return s == null || s.trim().length() == 0;
+    default void validatePresenceOf(String value, String name, ValidationErrors errors) {
+        if(value == null || value.length() == 0)
+            errors.add(name, "can't be blank");
+    }
+
+    default void validatePresenceOf(Object value, String name, ValidationErrors errors) {
+        if(value == null)
+            errors.add(name, "can't be blank");
     }
 
 }
