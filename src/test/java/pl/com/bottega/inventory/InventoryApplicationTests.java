@@ -60,6 +60,14 @@ public class InventoryApplicationTests {
   }
 
   @Test
+  public void invalidAmountsToInflate() throws Exception {
+    inflate("Shoes", -1).andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.amount").value("must be between 1 and 999"));
+    inflate("Shoes", 1000).andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.amount").value("must be between 1 and 999"));
+  }
+
+  @Test
   public void succesfulPurchase() throws Exception {
     inflate("Socks", 10);
     inflate("Shoes", 20);
@@ -151,6 +159,15 @@ public class InventoryApplicationTests {
     ).
         andExpect(status().isOk()).
         andExpect(jsonPath("$.success").value(true));
+  }
+
+  @Test
+  public void invalidPurchase() throws Exception {
+    purchase(entry("Pants", -1), entry("Shoes", 1001)).
+        andExpect(status().isUnprocessableEntity()).
+        andExpect(jsonPath("$.errors.Pants").value("must be between 1 and 999")).
+        andExpect(jsonPath("$.errors.Shoes").value("must be between 1 and 999"))
+        ;
   }
 
   private String toBuy(MapEntry<String, Integer>... items) throws Exception {
