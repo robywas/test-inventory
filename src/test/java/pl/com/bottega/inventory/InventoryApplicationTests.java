@@ -141,6 +141,18 @@ public class InventoryApplicationTests {
         andExpect(jsonPath("$.success").value(true));
   }
 
+  @Test
+  public void inflateSameProductMultipleTimes() throws Exception {
+    inflate("Pants", 10);
+    inflate("Pants", 10);
+
+    purchase(
+        entry("Pants", 20)
+    ).
+        andExpect(status().isOk()).
+        andExpect(jsonPath("$.success").value(true));
+  }
+
   private String toBuy(MapEntry<String, Integer>... items) throws Exception {
     Map<String, Integer> map = new HashMap<>();
     for (MapEntry<String, Integer> item : items)
