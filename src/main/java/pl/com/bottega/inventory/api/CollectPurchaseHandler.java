@@ -40,34 +40,37 @@ public class CollectPurchaseHandler implements Handler<CollectPurchaseCommand, P
         for (String key : productsPurchased.keySet()) {
             Product product = productRepository.getByScucode(key);
             if (!(product == null) && (product.getCount() > productsPurchased.get(key) || product.getCount() == productsPurchased.get(key))) {
-                productsSuccess.put(key,productsPurchased.get(key));
-                productsToSave.put(key,product.getCount() - productsPurchased.get(key));
+                productsSuccess.put(key, productsPurchased.get(key));
+                productsToSave.put(key, product.getCount() - productsPurchased.get(key));
 
             } else {
                 productsFailed.put(key, productsPurchased.get(key));
-                if(product == null)
-                validationErrors.add(key.toString(), "no such sku");
+                if (product == null)
+                    validationErrors.add(key.toString(), "no such sku");
             }
 
         }
 
 
         if (productsPurchased.size() == productsSuccess.size()) {
-            for (String key : productsToSave.keySet()) {
-                Product product = productRepository.getByScucode(key);
-                product.setCount(productsToSave.get(key));
-                productRepository.save(product);
-            }
+            safeProductsToRepo(productsToSave);
             productsSummary = new ProductsSummarySuccessDto(productsSuccess);
-        }
-        else{
+        } else {
             productsSummary = new ProductSummaryFailedDto(productsFailed);
             if (!(validationErrors.isValid()))
-            throw new InvalidCommandException(validationErrors);
+                throw new InvalidCommandException(validationErrors);
 
         }
 
         return productsSummary;
+    }
+
+    private void safeProductsToRepo(Map<String, Integer> productsToSave) {
+        productsToSave.keySet().forEach(key -> {
+            Product product = productRepository.getByScucode(key);
+            product.setCount(productsToSave.get(key));
+            productRepository.save(product);
+        });
     }
 
     @Override
