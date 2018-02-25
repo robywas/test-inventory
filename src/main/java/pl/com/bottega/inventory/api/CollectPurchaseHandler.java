@@ -17,8 +17,6 @@ import java.util.Map;
 public class CollectPurchaseHandler implements Handler<CollectPurchaseCommand, ProductsSummaryDto> {
 
     private ProductRepository productRepository;
-    private Validatable.ValidationErrors validationErrors = new Validatable.ValidationErrors();
-
 
     public CollectPurchaseHandler(ProductRepository productRepository) {
         this.productRepository = productRepository;
@@ -28,8 +26,7 @@ public class CollectPurchaseHandler implements Handler<CollectPurchaseCommand, P
     @Transactional
     public ProductsSummaryDto handle(CollectPurchaseCommand command) {
 
-        if (!(validationErrors.isValid()))
-            validationErrors = new Validatable.ValidationErrors();
+        Validatable.ValidationErrors validationErrors = new Validatable.ValidationErrors();
 
         ProductsSummaryDto productsSummary;
         Map<String, Integer> productsPurchased = command.getProducts();
