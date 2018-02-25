@@ -1,5 +1,7 @@
 package pl.com.bottega.inventory.domain.commands;
 
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -9,6 +11,7 @@ public interface Validatable {
 
     void validate(ValidationErrors errors);
 
+    @Component
     class ValidationErrors {
 
         private Map<String, Set<String>> errors = new HashMap<>();
@@ -29,14 +32,8 @@ public interface Validatable {
 
     }
 
-    default void validatePresenceOf(String value, String name, ValidationErrors errors) {
-        if(value == null || value.length() == 0)
-            errors.add(name, "can't be blank");
-    }
-
-    default void validatePresenceOf(Object value, String name, ValidationErrors errors) {
-        if(value == null)
-            errors.add(name, "can't be blank");
+    default boolean isEmpty(String s) {
+        return s == null || s.trim().length() == 0;
     }
 
 }

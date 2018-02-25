@@ -135,18 +135,18 @@ public class InventoryApplicationTests {
     inflate("Trousers", 10);
 
     purchase(
-        entry("Pants", 5),
-        entry("Trousers", 11)
+            entry("Pants", 5),
+            entry("Trousers", 11)
     ).
-        andExpect(status().isOk()).
-        andExpect(jsonPath("$.success").value(false));
+            andExpect(status().isOk()).
+            andExpect(jsonPath("$.success").value(false));
 
     purchase(
-        entry("Pants", 5),
-        entry("Trousers", 10)
+            entry("Pants", 5),
+            entry("Trousers", 10)
     ).
-        andExpect(status().isOk()).
-        andExpect(jsonPath("$.success").value(true));
+            andExpect(status().isOk()).
+            andExpect(jsonPath("$.success").value(true));
   }
 
   @Test
